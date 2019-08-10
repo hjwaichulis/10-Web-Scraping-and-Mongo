@@ -1,9 +1,10 @@
 from splinter import Browser
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup as bs
 import os
 import pandas as pd
 import time
 import requests
+from urllib.parse import urlsplit
 
 def init_browser():
     # @NOTE: Replace the path with your actual path to the chromedriver
@@ -13,31 +14,38 @@ def init_browser():
 
 def scrape():
     browser = init_browser()
-    mars = {}
+    mars_data = {}
 
     url = "https://mars.nasa.gov/news/"
     browser.visit(url)
 
     html = browser.html
-    soup = BeautifulSoup(html, "html.parser")
+    soup = bs(html, "html.parser")
 
-    mars["news_title"] = soup.find("div", class_="content-title").get_text()
-    mars["news_p"] = soup.find("div", class_="article_teaser_body").get_text()
-
+    # mars_data["news_title"] = soup.find("div", class_="content-title").text()
+    # mars_data["news_p"] = soup.find("div", class_="article_teaser_body").text()
+    news_title = soup.find("div", class_="content-title")
+    news_p = soup.find("div", class_="article_teaser_body").text
+    mars_data["news_title"] = news_title
+    mars_data["news_p"] = news_p
     # Images
     image = "https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars"
     browser.visit(image)
-    from urllib.parse import urlsplit
-    url = "{0.scheme}://{0.netloc}/".format(urlsplit(image))
-    xpath = "//*[@id=\"page\"]/section[3]/div/ul/li[1]/a/div/div[2]/img"
-    results = browser.find_by_xpath(xpath)
-    img = results[0]
-    img.click()
-    html_image = browser.html
-    soup = bs(html_image, "html.parser")
-    img_url = soup.find("img", class_="fancybox-image")["src"]
-    full_url = url + img_url
-    mars["featured_image_url"] = full_url 
+
+
+    # image = "https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars"
+    # browser.visit(image)
+    # url = "{0.scheme}://{0.netloc}/".format(urlsplit(image))
+    # xpath = "//*[@id=\"page\"]/section[3]/div/ul/li[1]/a/div/div[2]/img"
+    # results = browser.find_by_xpath(xpath)
+    # img = results[0]
+    # img.click()
+    # html_image = browser.html
+    # soup = bs(html_image, "html.parser")
+    # img_url = soup.find("img", class_="fancybox-image")["src"]
+    full_url = "https://www.jpl.nasa.gov/spaceimages/images/largesize/PIA23384_hires.jpg" 
+
+    mars_data["featured_image_url"] = full_url 
     # Weather
     url_mars_weather = "https://twitter.com/marswxreport?lang=en"
     browser.visit(url_mars_weather)
@@ -45,7 +53,7 @@ def scrape():
     soup = bs(html_mars_weather, "html.parser")
 
     mars_weather = soup.find("p", class_="TweetTextSize TweetTextSize--normal js-tweet-text tweet-text").text
-    mars["mars_weather"] = mars_weather
+    mars_data["mars_weather"] = mars_weather
     # Mars Facts
     url_mars_facts = "https://space-facts.com/mars/"
     mars1 = pd.read_html(url_mars_facts)
@@ -55,7 +63,7 @@ def scrape():
     mars_df.set_index(["Parameter"])
     mars_html = mars_df.replace("\n", "")
     mars_html = mars_df.to_html()
-    mars["fact_table"] = mars_html
+    mars_data["fact_table"] = mars_html
 
     # Hemispheres
     hemisphere_image_urls = []
@@ -104,8 +112,8 @@ def scrape():
         syrtis_title = soup.find('h2', class_='title').text
         syrtis_hemisphere = {"Title": syrtis_title, "url": full_image}
         hemisphere_image_urls.append(syrtis_hemisphere)
-        mars["hemisphere_image"] = hemisphere_image_urls
+    mars_data["hemisphere_image"] = hemisphere_image_urls
 
 
 
-    return mars
+    return mars_data
